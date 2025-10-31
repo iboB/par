@@ -15,5 +15,6 @@ target_sources(par
     INTERFACE FILE_SET HEADERS FILES
         par/api.h
     PRIVATE
+        par/bits/thread_name.hpp
+        par/bits/thread_name.cpp
 )
-
