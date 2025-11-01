@@ -225,7 +225,7 @@ struct thread_pool::impl {
                         m_executing_tasks.push_back(*t);
                         lock.unlock();
                         #if PAR_DEBUG_STATS
-                        m_debug_stats.num_tasks_stolen.fetch_add(1, std::memory_order_relaxed);
+                        ++m_debug_stats.num_tasks_stolen;
                         #endif
                         break; // go check for dynamic tasks
                     }
@@ -243,14 +243,12 @@ struct thread_pool::impl {
                     }
                     task();
                     #if PAR_DEBUG_STATS
-                    m_debug_stats.num_tasks_executed.fetch_add(1, std::memory_order_relaxed);
+                    ++m_debug_stats.num_tasks_executed;
                     #endif
                 }
                 #if PAR_DEBUG_STATS
                 auto time = high_res_clock::now() - start;
-                m_debug_stats.total_task_time_ns.fetch_add(
-                    std::chrono::duration_cast<std::chrono::nanoseconds>(time).count(),
-                    std::memory_order_relaxed);
+                m_debug_stats.total_task_time_ns += std::chrono::duration_cast<std::chrono::nanoseconds>(time).count();
                 #endif
                 m_executing_tasks.clear();
             }
@@ -390,7 +388,7 @@ struct thread_pool::impl {
 
         func(0);
         #if PAR_DEBUG_STATS
-        dstats.num_tasks_executed.fetch_add(1, std::memory_order_relaxed);
+        ++dstats.num_tasks_executed;
         #endif
 
         if (opts.sched != schedule_static && task_added_to_dynamic_tasks) {
@@ -414,8 +412,8 @@ struct thread_pool::impl {
 
                 task();
                 #if PAR_DEBUG_STATS
-                dstats.num_tasks_stolen.fetch_add(1, std::memory_order_relaxed);
-                dstats.num_tasks_executed.fetch_add(1, std::memory_order_relaxed);
+                ++dstats.num_tasks_stolen;
+                ++dstats.num_tasks_executed;
                 #endif
             }
         }
