@@ -3,31 +3,27 @@
 //
 #pragma once
 #include <cstddef>
-#include <utility>
+#include <cstdint>
 
 // type-erased function pointer
 
 namespace par {
 
-template <typename... Args>
-class task_func_ptr {
+class task_func {
     const void* m_callable_payload;
-    void(*m_invoke)(const void*, Args...);
+    void(*m_trampoline)(const void*, uint32_t);
 public:
-    task_func_ptr() {
+    task_func() {
         reset();
-    }
-    task_func_ptr(std::nullptr_t) {
-        reset(nullptr);
     }
 
     template <typename Func>
-    explicit task_func_ptr(Func* func) {
+    explicit task_func(Func* func) {
         reset(func);
     }
 
     template <typename Func>
-    explicit task_func_ptr(Func& func) {
+    explicit task_func(Func& func) {
         reset(func);
     }
 
@@ -35,9 +31,9 @@ public:
     void reset(Func* func) {
         static_assert(sizeof(Func*) == sizeof(void*));
         m_callable_payload = reinterpret_cast<const void*>(func);
-        m_invoke = [](const void* payload, Args... args) {
+        m_trampoline = [](const void* payload, uint32_t arg) {
             Func* f = reinterpret_cast<Func*>(payload);
-            (*f)(std::forward<Args>(args)...);
+            (*f)(arg);
         };
     }
 
@@ -48,20 +44,15 @@ public:
 
     void reset() {
         m_callable_payload = nullptr;
-        m_invoke = nullptr;
-    }
-
-    void reset(std::nullptr_t) {
-        reset();
+        m_trampoline = nullptr;
     }
 
     explicit operator bool() const {
         return !!m_callable_payload;
     }
 
-    template <typename... CallArgs>
-    void operator()(CallArgs&&... args) const {
-        return m_invoke(m_callable_payload, std::forward<CallArgs>(args)...);
+    void operator()(uint32_t arg) const {
+        return m_trampoline(m_callable_payload, arg);
     }
 };
 

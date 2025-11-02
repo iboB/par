@@ -41,7 +41,7 @@ constexpr uint32_t max_threads = 128;
 
 struct worker_task {
     uint32_t index;
-    task_func_ptr<uint32_t> func;
+    task_func func;
     std::latch* latch = nullptr; // have nullptr here when stopping
 
     void operator()() {
@@ -56,11 +56,11 @@ struct pending_dynamic_task {
 
     uint32_t size = 0; // nthreads, basically
 
-    task_func_ptr<uint32_t> func;
+    task_func func;
 
     std::latch& latch;
 
-    pending_dynamic_task(uint32_t i, uint32_t n, const task_func_ptr<uint32_t>& f, std::latch& l)
+    pending_dynamic_task(uint32_t i, uint32_t n, const task_func& f, std::latch& l)
         : index(i)
         , size(n)
         , func(f)
@@ -325,7 +325,7 @@ struct thread_pool::impl {
         }
     }
 
-    uint32_t run_task(const run_opts& opts, task_func_ptr<uint32_t> func) {
+    uint32_t run_task(const run_opts& opts, task_func func) {
         auto num_worker_jobs = get_par(opts);
 
         if (num_worker_jobs == 1) {
@@ -437,7 +437,7 @@ bool thread_pool::current_thread_is_worker() const {
     return m_impl->current_thread_is_worker();
 }
 
-uint32_t thread_pool::run_task(run_opts opts, task_func_ptr<uint32_t> task) {
+uint32_t thread_pool::run_task(run_opts opts, task_func task) {
     return m_impl->run_task(opts, std::move(task));
 }
 

@@ -4,7 +4,7 @@
 #pragma once
 #include "api.h"
 #include "run_opts.hpp"
-#include "task_func_ptr.hpp"
+#include "task_func.hpp"
 #include <memory>
 #include <cstdint>
 #include <string>
@@ -36,8 +36,8 @@ public:
     const std::string& name() const;
 
     // return the number of threads used to run the task, including the caller thread
-    uint32_t run_task(run_opts opts, task_func_ptr<uint32_t> task);
-    uint32_t run_task(task_func_ptr<uint32_t> task, run_opts opts = {}) {
+    uint32_t run_task(run_opts opts, task_func task);
+    uint32_t run_task(task_func task, run_opts opts = {}) {
         return run_task(opts, std::move(task));
     }
 
