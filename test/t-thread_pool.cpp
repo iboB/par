@@ -218,10 +218,10 @@ TEST_CASE("range task") {
     auto run_test_task = [&](uint32_t max_par) {
         std::atomic_int32_t sum = 0;
         const uint32_t en = std::min(max_par - 1, num_threads) + 1;
-        prun(pool, {.max_par = max_par}, [&](uint32_t i, uint32_t n) {
-            CHECK(n == en);
-            CHECK(i < n);
-            sum += i + 1;
+        prun(pool, {.max_par = max_par}, [&](par::job_info arg) {
+            CHECK(arg.num_jobs == en);
+            CHECK(arg.job_index < arg.num_jobs);
+            sum += arg.job_index + 1;
         });
         return sum.load();
     };

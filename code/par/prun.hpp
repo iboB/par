@@ -3,6 +3,7 @@
 //
 #pragma once
 #include "thread_pool.hpp"
+#include "job_info.hpp"
 #include <concepts>
 
 namespace par {
@@ -17,16 +18,17 @@ uint32_t prun(thread_pool& pool, run_opts opts, TaskFunc&& func) {
     return pool.run_task(opts, task_func(func));
 }
 
-template <std::invocable<uint32_t, uint32_t> TaskFunc>
+template <std::invocable<const job_info&> TaskFunc>
 uint32_t prun(thread_pool& pool, run_opts opts, TaskFunc&& func) {
     const auto par = pool.get_par(opts);
     if (par == 1) {
         // only one worker, just call the function and skip the overhead below
-        func(0, 1);
+        func(job_info{0, 1});
         return 1;
     }
     auto wfunc = [&](uint32_t i) {
-        func(i, par);
+        job_info arg{i, par};
+        func(arg);
     };
     return pool.run_task(opts, task_func(wfunc));
 }
