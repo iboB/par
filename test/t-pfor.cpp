@@ -109,15 +109,29 @@ TEST_CASE("pfor with job data") {
     });
     CHECK(sum.load() == 3);
 
-    pfor<job_data>(pool, {}, 0, 10, [&](int index, job_data& arg) {
+    auto dyn_func = [&](int index, job_data& arg) {
         static constexpr uint32_t num_jobs = num_threads + 1;
         CHECK(arg.job_index < num_jobs);
         CHECK(arg.num_jobs == num_jobs);
         ++arg.i;
         arg.vec.push_back(index);
         sum += index;
-    });
-    CHECK(sum.load() == 48);
+    };
+
+    sum = 0;
+    pfor<job_data>(pool, {}, 0, 10, dyn_func);
+    CHECK(sum.load() == 45);
+
+    sum = 0;
+    pfor(pool, {},
+        [&](const par::job_info& ji) {
+            job_data jd(ji);
+            return jd;
+        },
+        0, 10,
+        dyn_func
+    );
+    CHECK(sum.load() == 45);
 }
 
 TEST_CASE("pfor ranges") {
