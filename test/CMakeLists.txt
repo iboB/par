@@ -10,7 +10,7 @@ macro(par_test test)
 endmacro()
 
 par_test(anchor)
-par_test(task_func)
+par_test(te_func_ptr)
 
 par_test(thread_pool)
 

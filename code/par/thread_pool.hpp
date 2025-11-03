@@ -4,7 +4,7 @@
 #pragma once
 #include "api.h"
 #include "run_opts.hpp"
-#include "task_func.hpp"
+#include "bits/te_func_ptr.hpp"
 #include <memory>
 #include <cstdint>
 #include <string>
@@ -34,6 +34,8 @@ public:
     thread_pool& operator=(const thread_pool&) = delete;
 
     const std::string& name() const;
+
+    using task_func = te_func_ptr<void(uint32_t)>;
 
     // return the number of threads used to run the task, including the caller thread
     uint32_t run_task(run_opts opts, task_func task);

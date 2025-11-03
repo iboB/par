@@ -15,7 +15,7 @@ uint32_t prun(thread_pool& pool, run_opts opts, TaskFunc&& func) {
         func(0);
         return 1;
     }
-    return pool.run_task(opts, task_func(func));
+    return pool.run_task(opts, thread_pool::task_func(func));
 }
 
 template <std::invocable<const job_info&> TaskFunc>
@@ -30,7 +30,7 @@ uint32_t prun(thread_pool& pool, run_opts opts, TaskFunc&& func) {
         job_info arg{i, par};
         func(arg);
     };
-    return pool.run_task(opts, task_func(wfunc));
+    return pool.run_task(opts, thread_pool::task_func(wfunc));
 }
 
 template <typename TaskFunc>

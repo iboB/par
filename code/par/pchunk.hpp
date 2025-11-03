@@ -39,7 +39,7 @@ uint32_t pchunk(thread_pool& pool, run_opts opts, const I size, Func&& func) {
         job_info ji{ci, uint32_t(num_chunks)};
         impl::invoke_pchunk_func(begin, end, ji, func);
     };
-    return pool.run_task(opts, task_func(wfunc));
+    return pool.run_task(opts, thread_pool::task_func(wfunc));
 }
 
 template <typename I, typename Func>
