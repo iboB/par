@@ -13,3 +13,5 @@ par_test(anchor)
 par_test(task_func)
 
 par_test(thread_pool)
+
+par_test(pchunk)
