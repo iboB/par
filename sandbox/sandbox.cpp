@@ -5,6 +5,12 @@
 #include <functional>
 
 int main() {
-    std::function<void()> func;
+    //pfor(pool, {.max_par = 4}, 0, 10,
+    //    [](job_info job) {
+
+    //    },
+    //    [](int i) {
+    //        std::cout << "Processing index: " << i << std::endl;
+    //    });
     std::cout << "Hello, Sandbox!" << std::endl;
 }
