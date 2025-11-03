@@ -94,7 +94,7 @@ struct thread_pool::impl {
 
     std::atomic_flag m_have_dynamic_tasks = ATOMIC_FLAG_INIT;
 
-    std::mutex m_task_mutex;
+    std::mutex m_dynamic_task_mutex;
     std::deque<pending_dynamic_task> m_pending_dynamic_tasks;
 
     std::optional<worker_task> get_pending_dynamic_task() {
@@ -102,7 +102,7 @@ struct thread_pool::impl {
             return std::nullopt;
         }
 
-        std::lock_guard lock(m_task_mutex);
+        std::lock_guard lock(m_dynamic_task_mutex);
 
         while (true) {
             if (m_pending_dynamic_tasks.empty()) {
@@ -168,7 +168,7 @@ struct thread_pool::impl {
         worker(worker&&) noexcept = delete;
         worker& operator=(worker&&) noexcept = delete;
 
-        // indscriminately add tasks guaranteed to be executed by this worker
+        // indiscriminately add tasks guaranteed to be executed by this worker
         void add_task(worker_task task) {
             {
                 std::unique_lock lock(m_mutex);
@@ -221,13 +221,14 @@ struct thread_pool::impl {
                         break;
                     }
                     if (auto t = m_pool.get_pending_dynamic_task()) {
+                        // check for dynamic tasks
                         m_busy.test_and_set(std::memory_order_acquire);
                         m_executing_tasks.push_back(*t);
                         lock.unlock();
                         #if PAR_DEBUG_STATS
                         ++m_debug_stats.num_tasks_stolen;
                         #endif
-                        break; // go check for dynamic tasks
+                        break;
                     }
                     m_busy.clear(std::memory_order_release);
 
@@ -352,13 +353,13 @@ struct thread_pool::impl {
             // static scheduling, no work stealing
             // just add task to corresponding workers
             for (uint32_t i = 0; i < num_worker_jobs; ++i) {
-                m_workers[i]->add_task({i + 1, func, &latch});
+                m_workers[i]->add_task({ i + 1, func, &latch });
             }
         }
         else {
             uint32_t index = 0;
             for (auto& w : m_workers) {
-                if (w->try_add_task({index + 1, func, &latch})) {
+                if (w->try_add_task({ index + 1, func, &latch })) {
                     ++index;
                     if (index == num_worker_jobs) {
                         break;
@@ -366,12 +367,12 @@ struct thread_pool::impl {
                 }
             }
             if (index < num_worker_jobs) {
+                // not enough idle workers, add the rest to the pending dynamic tasks
                 task_added_to_dynamic_tasks = true;
-                m_have_dynamic_tasks.test_and_set(std::memory_order_acquire);
                 {
-                    // not enough idle workers, add the rest to the pending dynamic tasks
-                    std::lock_guard lock(m_task_mutex);
+                    std::lock_guard lock(m_dynamic_task_mutex);
                     m_pending_dynamic_tasks.emplace_back(index, num_worker_jobs, func, latch);
+                    m_have_dynamic_tasks.test_and_set(std::memory_order_release);
                 }
                 for (auto& w : m_workers) {
                     // try to wake up workers which have gone idle while we were adding the pending task
@@ -397,7 +398,7 @@ struct thread_pool::impl {
                 worker_task task;
 
                 {
-                    std::lock_guard lock(m_task_mutex);
+                    std::lock_guard lock(m_dynamic_task_mutex);
 
                     // find our task so that the caller only works on its own task
                     auto f = itlib::pfind_if(m_pending_dynamic_tasks, [&](const pending_dynamic_task& t) {

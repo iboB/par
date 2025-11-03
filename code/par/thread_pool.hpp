@@ -41,7 +41,6 @@ public:
         return run_task(opts, std::move(task));
     }
 
-
     // note that this does not include the caller thread
     uint32_t num_threads() const;
 
@@ -53,6 +52,11 @@ public:
     // from the point of view of the caller thread
     uint32_t get_par(run_opts opts = {}) const;
 
+    // adjust opts .max_par to the actual number of threads that will be used to run a task given
+    // * the number of threads in the pool
+    // * opts - requested parallelism and scheduling
+    // * the size of the task
+    // besides modifying opts.max_par, also return the adjusted value
     template <typename I>
     I adjust_par(I size, run_opts& opts) const {
         static_assert(std::is_integral_v<I>, "I must be an integral type");
@@ -78,7 +82,6 @@ public:
     I get_par(I size, run_opts opts = {}) const {
         return adjust_par(size, opts);
     }
-
 
     // check if the current thread is one of the worker threads of this pool
     bool current_thread_is_worker() const;
