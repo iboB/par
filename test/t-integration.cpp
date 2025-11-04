@@ -1,3 +1,6 @@
+// Copyright (c) Borislav Stanimirov
+// SPDX-License-Identifier: MIT
+//
 #include <par/pfor.hpp>
 #include <par/prun.hpp>
 #include <par/debug_stats_print.hpp>

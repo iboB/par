@@ -16,3 +16,5 @@ par_test(thread_pool)
 
 par_test(pchunk)
 par_test(pfor)
+
+par_test(integration)
