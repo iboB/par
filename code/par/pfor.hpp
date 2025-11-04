@@ -21,8 +21,16 @@ struct pfor_range {
         step = s;
         return *this;
     }
+    pfor_range<I>& step_by(I s) {
+        step = s;
+        return *this;
+    }
     pfor_range<I>& with_iterations_per_job(I ipj) {
         iterations_per_job = ipj;
+        return *this;
+    }
+    pfor_range<I>& job_chunk(I jc) {
+        iterations_per_job = jc;
         return *this;
     }
 };
@@ -160,8 +168,21 @@ void range_pfor(
         return;
     }
 
-    if (range.step == 1) {
-        // avoid multiplication in the inner loop
+    // check whether we can avoid multiplications in the inner loop
+
+    if (chunk_size == 1) {
+        // avoid chunk_size multiplications
+        simple_pfor<JobData>(pool, opts, std::forward<JobDataInitFunc>(init_job_data),
+            U(0), num_chunks, [&](U chunk_index, JobData& data) {
+                const U i_index = chunk_index;
+                I i = I(begin + i_index * U(range.step));
+                invoke_pfor_func(i, data, func);
+            }
+        );
+        return;
+    }
+    else if (range.step == 1) {
+        // avoid step multiplications
         simple_pfor<JobData>(pool, opts, std::forward<JobDataInitFunc>(init_job_data),
             U(0), num_chunks, [&](U chunk_index, JobData& data) {
                 const U chunk_begin = chunk_index * chunk_size;
@@ -173,17 +194,19 @@ void range_pfor(
         );
         return;
     }
-
-    simple_pfor<JobData>(pool, opts, std::forward<JobDataInitFunc>(init_job_data),
-        U(0), num_chunks, [&](U chunk_index, JobData& data) {
-            const U chunk_begin = chunk_index * chunk_size;
-            const U chunk_end = (chunk_index + 1) < num_chunks ? chunk_begin + chunk_size : total_iterations;
-            I i = I(begin + chunk_begin * U(range.step));
-            for (U u = chunk_begin; u < chunk_end; ++u, i += range.step) {
-                invoke_pfor_func(i, data, func);
+    else {
+        // ALL the multiplications
+        simple_pfor<JobData>(pool, opts, std::forward<JobDataInitFunc>(init_job_data),
+            U(0), num_chunks, [&](U chunk_index, JobData& data) {
+                const U chunk_begin = chunk_index * chunk_size;
+                const U chunk_end = chunk_index + 1 < num_chunks ? chunk_begin + chunk_size : total_iterations;
+                I i = I(begin + chunk_begin * U(range.step));
+                for (U u = chunk_begin; u < chunk_end; ++u, i += range.step) {
+                    invoke_pfor_func(i, data, func);
+                }
             }
-        }
-    );
+        );
+    }
 }
 
 } // namespace impl
