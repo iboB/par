@@ -13,7 +13,10 @@
 
 static constexpr uint32_t NUM_THREADS = 8;
 
-int mandelbrot(double cx, double cy, int max_iter) {
+inline int mandelbrot(int x, int y, int size, int max_iter = 1000) {
+    double cx = (x - size / 2.0) * 2.0 / size;
+    double cy = (y - size / 2.0) * 2.0 / size;
+
     std::complex<double> c(cx, cy);
     std::complex<double> z = 0;
     int n = 0;
@@ -31,9 +34,7 @@ void par_nest(picobench::state& s) {
         picobench::scope scope(s);
         par::pfor({.max_par = NUM_THREADS}, 0, size, [&](int y) {
             par::pfor({.max_par = NUM_THREADS}, 0, size, [&](int x) {
-                double cx = (x - size / 2.0) * 4.0 / size;
-                double cy = (y - size / 2.0) * 4.0 / size;
-                output[y * size + x] = mandelbrot(cx, cy, 1000);
+                output[y * size + x] = mandelbrot(x, y, size);
             });
         });
     }
@@ -49,9 +50,7 @@ void par_auto_collapse(picobench::state& s) {
         par::pfor({.max_par = NUM_THREADS}, 0, size * size, [&](int i) {
             auto x = i % size;
             auto y = i / size;
-            double cx = (x - size / 2.0) * 4.0 / size;
-            double cy = (y - size / 2.0) * 4.0 / size;
-            output[y * size + x] = mandelbrot(cx, cy, 1000);
+            output[y * size + x] = mandelbrot(x, y, size);
         });
     }
     s.set_result(std::accumulate(output.begin(), output.end(), 0));
@@ -66,9 +65,7 @@ void openmp(picobench::state& s) {
         #pragma omp parallel for num_threads(NUM_THREADS) schedule(dynamic) collapse(2)
         for (int y = 0; y < size; ++y) {
             for (int x = 0; x < size; ++x) {
-                double cx = (x - size / 2.0) * 4.0 / size;
-                double cy = (y - size / 2.0) * 4.0 / size;
-                output[y * size + x] = mandelbrot(cx, cy, 1000);
+                output[y * size + x] = mandelbrot(x, y, size);
             }
         }
     }
@@ -76,13 +73,28 @@ void openmp(picobench::state& s) {
 }
 PICOBENCH(openmp);
 
+void linear(picobench::state& s) {
+    const auto size = s.iterations();
+    std::vector<int> output(size * size);
+    {
+        picobench::scope scope(s);
+        for (int y = 0; y < size; ++y) {
+            for (int x = 0; x < size; ++x) {
+                output[y * size + x] = mandelbrot(x, y, size);
+            }
+        }
+    }
+    s.set_result(std::accumulate(output.begin(), output.end(), 0));
+}
+PICOBENCH(linear);
+
 int main(int argc, char* argv[]) {
     par::thread_pool::init_global(std::min(std::thread::hardware_concurrency(), NUM_THREADS + 2));
 
     picobench::runner r;
     r.set_compare_results_across_samples(true);
     r.set_compare_results_across_benchmarks(true);
-    r.set_default_state_iterations({20, 80});
+    r.set_default_state_iterations({20, 120});
     r.parse_cmd_line(argc, argv);
 
     return r.run();

@@ -22,5 +22,6 @@ macro(par_benchmark name)
     set_target_properties(run-${tgt} PROPERTIES FOLDER bench)
 endmacro()
 
+par_benchmark(sleep)
 par_benchmark(rejection-sample)
 par_benchmark(mandelbrot)
