@@ -40,7 +40,7 @@ struct run_opts {
     // max number of task instances to spawn
     // ALWAYS clamped to the number of workers in the pool + 1 (the caller thread)
     // otherwise its the exact number of task instances
-    // if you want exactly N instances of the task, use pfor or pchunk
+    // if you want exactly N instances of the task, use pfor
     // 0 means use all available workers
     // 1 means only use the caller thread
     // dynamic: the task instances may eventually run on a single thread or few threads when there's other work,

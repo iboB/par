@@ -470,7 +470,7 @@ thread_pool& thread_pool::global() {
         constexpr uint32_t other_threads = 2;
         const auto hwc = std::thread::hardware_concurrency();
         if (hwc <= other_threads) {
-            // no wokers, only caller thread
+            // no workers, only caller thread
             return do_init_global(0);
         }
         else {
@@ -485,6 +485,14 @@ thread_pool& thread_pool::init_global(uint32_t nthreads) {
         throw std::runtime_error("global par::thread_pool already initialized");
     }
     return do_init_global(nthreads);
+}
+
+bool thread_pool::have_debug_stats() const {
+    #if PAR_DEBUG_STATS
+    return true;
+    #else
+    return false;
+    #endif
 }
 
 } // namespace par
