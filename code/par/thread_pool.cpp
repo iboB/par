@@ -22,7 +22,7 @@
 DISABLE_MSVC_WARNING(4324)
 
 #if !defined(PAR_DEBUG_STATS)
-#define PAR_DEBUG_STATS 1
+#define PAR_DEBUG_STATS 0
 #endif
 
 #if PAR_DEBUG_STATS
