@@ -66,9 +66,21 @@ const auto data = make_some_data();
 }
 ```
 
+## Why not just use OpenMP?
+
+The initial motivation of this library was the use of a thread sanitizer. Using OpenMP with thread sanitization leads to a slew of false positive errors. To fix this, one needs to either turn the thread sanitizer off for potentially big chunks of their code, or build OpenMP itself with thread sanitization enabled. Incorporating any of these (especially custom OpenMP) into a build system is very unpleasant.
+
+Thread sanitizers are good. The vast majority of software only needs a small subset of OpenMP: parallel for loops and basic scheduling. Par aims to provide that subset without the build-system baggage and [without any sacrifice in performance](doc/perf.md).
+
+As a side effect, par allows finer-grain control over the thread pool. You can instantiate multiple thread pools with different sizes. Thus you can integrate par into larger systems more easily as you can control the number of threads allotted to different subsystems.
+
+### Why not use `std::execution::par`?
+
+I don't like `std::execution::par`. It's acceptable for small oneshot tasks that you run once and forget, but it's terrible for integrating into larger systems with more moving parts. It's a black box. You can't control how many threads it uses, you can't control how tasks are scheduled, you can't integrate it with your own thread pools or task systems. Additionally it only works on iterators which makes certain algorithms harder to express.
+
 ## Features
 
-par notably has less overhead than OpenMP which can be quite significant for small tasks. See more in the [performance document](doc/perf.md).
+Par has just about the same overhead as OpenMP. See more in the [performance document](doc/perf.md).
 
 * `par::thread_pool`: The thread pool. Multiple thread pools can be instantiated. A global one is used by default by runners. The global thread pool is lazily initialized on first use and lives until process termination.
 * Runners:
@@ -116,22 +128,6 @@ The tests, examples, and configuration depend on various packages, but par's cod
 * [iboB/itlib](https://github.com/iboB/itlib)
 
 These libraries are header-only and have no dependencies of their own. If you copy code or create an alternative build process, things should be relatively easy to set up.
-
-## FAQ
-
-### Why not just use OpenMP?
-
-The initial motivation for this library was that using OpenMP with thread sanitizers leads to a slew of false positive errors. To fix this, one needs to either turn the thread sanitizer off for potentially big chunks of their code, or build OpenMP itself with thread sanitization enabled. Incorporating any of these (especially custom OpenMP) into a build system is very unpleasant.
-
-On the other hand, I only needed a relatively small subset of OpenMP: parallel for loops and basic scheduling.
-
-That's why I set out to reimplement these in a reusable library with the goal of having my code being no slower with it compared to OpenMP.
-
-To my surprise, it not only achieves this, but outperforms OpenMP in some cases, likely because of its simplicity and the lower overhead of managing fewer features.
-
-## Why not use `std::execution::par`?
-
-I don't like `std::execution::par`. It's acceptable for small oneshot tasks, that you run once and forget, but it's terrible for integrating into larger systems with more moving parts. It's a black box. You can't control how many threads it uses, you can't control how tasks are scheduled, you can't integrate it with your own thread pools or task systems. Additionally it only works on iterators which makes certain algorithms harder to express.
 
 ## License
 
