@@ -1,11 +1,11 @@
 // Copyright (c) Borislav Stanimirov
 // SPDX-License-Identifier: MIT
 //
+#include "bu-init.hpp"
 #include <par/pfor.hpp>
 #include <itlib/atomic.hpp>
 #include <omp.h>
 #include <random>
-#include <thread>
 
 #define PICOBENCH_IMPLEMENT
 #include <picobench/picobench.hpp>
@@ -79,7 +79,7 @@ void linear(picobench::state& s) {
 PICOBENCH(linear);
 
 int main(int argc, char* argv[]) {
-    par::thread_pool::init_global(std::min(std::thread::hardware_concurrency(), NUM_THREADS + 2));
+    init_benchmark(NUM_THREADS);
 
     picobench::runner r;
     r.set_default_state_iterations({10'000, 100'000});
