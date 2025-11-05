@@ -10,6 +10,8 @@
 inline void init_benchmark(uint32_t num_threads) {
     par::thread_pool::init_global(std::min(std::thread::hardware_concurrency(), num_threads + 2));
 
+    num_threads = par::thread_pool::global().num_threads();
+
     std::atomic_uint32_t counter{0};
 
     // warm up par
