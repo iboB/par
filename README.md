@@ -76,11 +76,11 @@ As a side effect, par allows finer-grain control over the thread pool. You can i
 
 ### Why not use `std::execution::par`?
 
-I don't like `std::execution::par`. It's acceptable for small oneshot tasks that you run once and forget, but it's terrible for integrating into larger systems with more moving parts. It's a black box. You can't control how many threads it uses, you can't control how tasks are scheduled, you can't integrate it with your own thread pools or task systems. Additionally it only works on iterators which makes certain algorithms harder to express.
+I don't like `std::execution::par`. It's acceptable for small oneshot tasks that you run once and forget, but it's terrible for integrating into larger systems with more moving parts. It's a black box. You can't control how many threads it uses, you can't control how tasks are scheduled. Additionally it only works on iterators which makes certain algorithms harder to express.
 
 ## Features
 
-Par has just about the same overhead as OpenMP. See more in the [performance document](doc/perf.md).
+Par has about the same overhead as OpenMP. See more in the [performance document](doc/perf.md).
 
 * `par::thread_pool`: The thread pool. Multiple thread pools can be instantiated. A global one is used by default by runners. The global thread pool is lazily initialized on first use and lives until process termination.
 * Runners:
