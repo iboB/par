@@ -82,7 +82,7 @@ Linux, gcc 13.3.0 (AMD Ryzen 9 7950X):
  openmp                   |    1000 |     0.009 |       9 |  0.394 |108813928.2
  linear                   |    1000 |     0.023 |      23 |  0.990 | 43269438.8
 
-Note that here OpenMP is much faster than par. About as fast as the linear code. Still, this is for a cost at about 9 microseconds per parallel region.
+Note that here OpenMP is much faster than par. About as fast as the linear code. Still, this is for a cost at about 7 microseconds per parallel region.
 
 Now let's looks at fewer, larger tasks: 50 tasks, of size 100,000 samples each:
 
@@ -121,4 +121,4 @@ Small tasks are much slower with OpenMP here, while par is significantly slower 
  openmp                   |  100000 |     1.359 |      13 |  1.012 | 73599764.5
  linear                   |  100000 |     1.533 |      15 |  1.143 | 65214555.9
 
-Here the difference is again gone, with par being slightly faster than OpenMP at about 30 microseconds per parallel region. Notably, though, both par and OpenMP are significantly slower relative to the linear solution than on Linux.
+Here the difference is again gone, with par being slightly faster than OpenMP at about 20 microseconds per parallel region. Notably, though, both par and OpenMP are significantly slower relative to the linear solution than on Linux.
