@@ -42,7 +42,7 @@ void par_nest(picobench::state& s) {
 }
 PICOBENCH(par_nest);
 
-void par_auto_collapse(picobench::state& s) {
+void par_manual_collapse(picobench::state& s) {
     const auto size = s.iterations();
     std::vector<int> output(size * size);
     {
@@ -55,7 +55,7 @@ void par_auto_collapse(picobench::state& s) {
     }
     s.set_result(std::accumulate(output.begin(), output.end(), 0));
 }
-PICOBENCH(par_auto_collapse);
+PICOBENCH(par_manual_collapse);
 
 void openmp(picobench::state& s) {
     const auto size = s.iterations();

@@ -8,7 +8,7 @@
 #include <thread>
 
 inline void init_benchmark(uint32_t num_threads) {
-    par::thread_pool::init_global(std::min(std::thread::hardware_concurrency(), num_threads + 2));
+    par::thread_pool::init_global(std::min(std::thread::hardware_concurrency(), num_threads));
 
     num_threads = par::thread_pool::global().num_threads();
 
