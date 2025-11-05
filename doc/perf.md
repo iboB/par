@@ -63,11 +63,11 @@ Here are the results on Windows 10 with MSVC 19.36.32532.0 (Intel Core i9-13900H
 
 ## Rejection sampling benchmark
 
-The rejection sampling benchmark runs a workload on 8 threads where each job performs a number of random samples of points in a cube, and accepts the ones which are in the inscribed sphere: roughly 52% of the samples are accepted. When a sample is accepted, an atomic integer is incremented. This benchmark represents a slightly unblanced workload, as some jobs will accept more samples than others, and the bottleneck is the atomic increment operation. 
+The rejection sampling benchmark runs a workload on 8 threads where each job performs a number of random samples of points in a cube, and accepts the ones which are in the inscribed sphere: roughly 52% of the samples are accepted. When a sample is accepted, an atomic integer is incremented. This benchmark represents a slightly unbalanced workload, as some jobs will accept more samples than others, and the bottleneck is the atomic increment operation. 
 
 In this case, the difference in OpenMP implementation for different compilers is stark.
 
-First let's take a look a huge number of small tasks: 1000 tasks, of size 100 and 1000 samples each:
+First let's take a look at a huge number of small tasks: 1000 tasks, of size 100 and 1000 samples each:
 
 Linux, gcc 13.3.0 (AMD Ryzen 9 7950X):
 
@@ -84,7 +84,7 @@ Linux, gcc 13.3.0 (AMD Ryzen 9 7950X):
 
 Note that here OpenMP is much faster than par. About as fast as the linear code. Still, this is for a cost at about 7 microseconds per parallel region.
 
-Now let's looks at fewer, larger tasks: 50 tasks, of size 100,000 samples each:
+Now let's look at fewer, larger tasks: 50 tasks, of size 100,000 samples each:
 
 `$ ./bin/bench-par-rejection-sample --iters=100000 --samples=50`
 
