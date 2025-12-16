@@ -37,8 +37,6 @@ namespace {
 
 thread_local thread_pool::impl* current_pool = nullptr;
 
-constexpr uint32_t max_threads = 128;
-
 struct worker_task {
     uint32_t index;
     thread_pool::task_func func;
@@ -266,10 +264,6 @@ struct thread_pool::impl {
         , m_caller_stats(m_debug_stats.caller_stats)
         #endif
     {
-        if (nthreads >= max_threads) {
-            throw std::runtime_error("par::thread_pool supports up to " + std::to_string(max_threads - 1) + " threads");
-        }
-
         #if PAR_DEBUG_STATS
         m_debug_stats.pool_name = m_name;
         m_debug_stats.per_worker.resize(nthreads);
