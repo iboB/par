@@ -19,6 +19,8 @@ namespace par {
 
 template <typename T>
 struct anchor {
+    // use a union to be able to capture types without default constructors
+    // wihtout this, the fake move operatins won't compile
     union {
         T value;
     };

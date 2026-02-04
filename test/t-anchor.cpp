@@ -32,3 +32,22 @@ TEST_CASE("mutex") {
 
     CHECK_THROWS(vec.reserve(1000));
 }
+
+struct custom {
+    int i;
+    custom(int v) : i(v) {}
+    custom(const custom&) = delete;
+    custom& operator=(const custom&) = delete;
+};
+
+TEST_CASE("custom non-movable") {
+    static_assert(!std::is_move_constructible_v<custom>);
+    std::vector<par::anchor<custom>> vec;
+    vec.reserve(5);
+    for (size_t i = 0; i < vec.capacity(); ++i) {
+        vec.emplace_back(int(i));
+    }
+    for (size_t i = 0; i < vec.size(); ++i) {
+        CHECK(vec[i]->i == int(i));
+    }
+}
