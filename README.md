@@ -36,7 +36,7 @@ for (int i = 0; i < data.size(); ++i) {
 #### par
 ```cpp
 struct job_data {
-    job_data(const par::job_info& info) 
+    job_data(const par::job_info& info)
         : rng(info.job_index)
         , dist(0, 1);
     {}
@@ -135,4 +135,4 @@ This software is distributed under the MIT Software License.
 
 See accompanying file LICENSE or copy [here](https://opensource.org/licenses/MIT).
 
-Copyright &copy; 2025 [Borislav Stanimirov](http://github.com/iboB)
+Copyright &copy; 2025-2026 [Borislav Stanimirov](http://github.com/iboB)
