@@ -347,13 +347,13 @@ struct thread_pool::impl {
             // static scheduling, no work stealing
             // just add task to corresponding workers
             for (uint32_t i = 0; i < num_worker_jobs; ++i) {
-                m_workers[i]->add_task({ i + 1, func, &latch });
+                m_workers[i]->add_task({i + 1, func, &latch});
             }
         }
         else {
             uint32_t index = 0;
             for (auto& w : m_workers) {
-                if (w->try_add_task({ index + 1, func, &latch })) {
+                if (w->try_add_task({index + 1, func, &latch})) {
                     ++index;
                     if (index == num_worker_jobs) {
                         break;
