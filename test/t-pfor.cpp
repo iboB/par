@@ -10,29 +10,33 @@
 #include <mutex>
 
 TEST_CASE("pfor dynamic") {
-    static constexpr uint32_t num_threads = 4;
+    static constexpr uint32_t num_threads = 6;
     par::thread_pool pool("test", 4);
+
+    static constexpr size_t size = 937;
 
     auto run_test_func = [&](uint32_t max_par) {
         std::atomic_int count = 0;
-        par::pfor(pool, {.max_par = max_par}, 0, 1000, [&](int i) {
+        par::pfor(pool, {.max_par = max_par}, 0, 937, [&](int i) {
             count += i;
         });
-        CHECK(count == 500 * 999);
+        CHECK(count == (size * (size - 1)) / 2);
     };
 
     run_test_func(1);
     run_test_func(3);
+    run_test_func(4);
+    run_test_func(5);
     run_test_func(num_threads);
     run_test_func(1000);
     run_test_func(0);
 }
 
 TEST_CASE("pfor static") {
-    static constexpr uint32_t num_threads = 4;
+    static constexpr uint32_t num_threads = 6;
     par::thread_pool pool("test", num_threads);
 
-    static constexpr size_t size = 100;
+    static constexpr size_t size = 823;
 
     auto run_test = [&](uint32_t par) {
         std::vector<std::thread::id> thread_ids(size);
@@ -48,11 +52,13 @@ TEST_CASE("pfor static") {
             CHECK(thread_ids[i] == std::this_thread::get_id());
             count += i;
         });
-        CHECK(count == 50 * 99);
+        CHECK(count == (size * (size - 1)) / 2);
     };
 
     run_test(1);
     run_test(3);
+    run_test(4);
+    run_test(5);
     run_test(num_threads);
     run_test(num_threads + 1);
 }
@@ -135,7 +141,7 @@ TEST_CASE("pfor with job data") {
 }
 
 TEST_CASE("pfor ranges") {
-    static constexpr uint32_t num_threads = 4;
+    static constexpr uint32_t num_threads = 6;
     par::thread_pool pool("test", num_threads);
 
     using vec = std::vector<int>;
@@ -173,7 +179,7 @@ TEST_CASE("pfor ranges") {
 
 
 TEST_CASE("pfor chunks") {
-    static constexpr uint32_t num_threads = 4;
+    static constexpr uint32_t num_threads = 6;
     par::thread_pool pool("test", num_threads);
 
     using rv = std::vector<std::pair<int, int>>;
@@ -215,3 +221,20 @@ TEST_CASE("pfor chunks") {
     });
 }
 
+TEST_CASE("small iteration space") {
+    static constexpr uint32_t num_threads = 9;
+    par::thread_pool pool("test", num_threads);
+
+    auto run_test = [&](par::schedule sched, uint32_t max_par) {
+        std::atomic_int sum = 0;
+        par::pfor(pool, {.sched = sched, .max_par = max_par}, 10, 15, [&](int i) {
+            sum += i;
+        });
+        CHECK(sum == 60);
+    };
+
+    for (uint32_t i = 0; i <= num_threads + 1; ++i) {
+        run_test(par::schedule_dynamic, i);
+        run_test(par::schedule_static, i);
+    }
+}
