@@ -10,7 +10,7 @@
 #define PICOBENCH_IMPLEMENT
 #include <picobench/picobench.hpp>
 
-static constexpr uint32_t NUM_THREADS = 8;
+static constexpr uint32_t NUM_JOBS = 8;
 
 bool is_in_sphere(double x, double y, double z) {
     return x * x + y * y + z * z <= 1;
@@ -35,7 +35,7 @@ void bench_par(picobench::state& s) {
         }
     };
 
-    par::run_opts opts = {.sched = par::schedule_static, .max_par = NUM_THREADS};
+    par::run_opts opts = {.sched = par::schedule_static, .max_par = NUM_JOBS};
     par::pfor<sampler>(opts, 0, s.iterations(), [&](int, sampler& samp) {
         if (is_in_sphere(samp(), samp(), samp())) {
             ++accepted;
@@ -50,7 +50,7 @@ void openmp(picobench::state& s) {
     itlib::atomic_relaxed_counter<uintptr_t> accepted(0);
 
     picobench::scope scope(s);
-    #pragma omp parallel num_threads(NUM_THREADS)
+    #pragma omp parallel num_threads(NUM_JOBS)
     {
         std::mt19937 rng(omp_get_thread_num());
         std::uniform_real_distribution<double> dist(-1, 1);
@@ -79,7 +79,7 @@ void linear(picobench::state& s) {
 PICOBENCH(linear);
 
 int main(int argc, char* argv[]) {
-    init_benchmark(NUM_THREADS);
+    init_benchmark(NUM_JOBS);
 
     picobench::runner r;
     r.set_default_state_iterations({10'000, 100'000});
