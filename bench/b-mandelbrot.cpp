@@ -11,7 +11,7 @@
 #define PICOBENCH_IMPLEMENT
 #include <picobench/picobench.hpp>
 
-static constexpr uint32_t NUM_THREADS = 8;
+static constexpr uint32_t NUM_JOBS = 8;
 
 inline int mandelbrot(int x, int y, int size, int max_iter = 1000) {
     double cx = (x - size / 2.0) * 2.0 / size;
@@ -32,8 +32,8 @@ void par_nest(picobench::state& s) {
     std::vector<int> output(size * size);
     {
         picobench::scope scope(s);
-        par::pfor({.max_par = NUM_THREADS}, 0, size, [&](int y) {
-            par::pfor({.max_par = NUM_THREADS}, 0, size, [&](int x) {
+        par::pfor({.max_par = NUM_JOBS}, 0, size, [&](int y) {
+            par::pfor({.max_par = NUM_JOBS}, 0, size, [&](int x) {
                 output[y * size + x] = mandelbrot(x, y, size);
             });
         });
@@ -47,7 +47,7 @@ void par_manual_collapse(picobench::state& s) {
     std::vector<int> output(size * size);
     {
         picobench::scope scope(s);
-        par::pfor({.max_par = NUM_THREADS}, 0, size * size, [&](int i) {
+        par::pfor({.max_par = NUM_JOBS}, 0, size * size, [&](int i) {
             auto x = i % size;
             auto y = i / size;
             output[y * size + x] = mandelbrot(x, y, size);
@@ -55,14 +55,14 @@ void par_manual_collapse(picobench::state& s) {
     }
     s.set_result(std::accumulate(output.begin(), output.end(), 0));
 }
-PICOBENCH(par_manual_collapse);
+//PICOBENCH(par_manual_collapse);
 
 void openmp(picobench::state& s) {
     const auto size = s.iterations();
     std::vector<int> output(size * size);
     {
         picobench::scope scope(s);
-        #pragma omp parallel for num_threads(NUM_THREADS) schedule(dynamic) collapse(2)
+        #pragma omp parallel for num_threads(NUM_JOBS) schedule(dynamic) collapse(2)
         for (int y = 0; y < size; ++y) {
             for (int x = 0; x < size; ++x) {
                 output[y * size + x] = mandelbrot(x, y, size);
@@ -71,7 +71,7 @@ void openmp(picobench::state& s) {
     }
     s.set_result(std::accumulate(output.begin(), output.end(), 0));
 }
-PICOBENCH(openmp);
+//PICOBENCH(openmp);
 
 void linear(picobench::state& s) {
     const auto size = s.iterations();
@@ -86,10 +86,10 @@ void linear(picobench::state& s) {
     }
     s.set_result(std::accumulate(output.begin(), output.end(), 0));
 }
-PICOBENCH(linear);
+//PICOBENCH(linear);
 
 int main(int argc, char* argv[]) {
-    init_benchmark(NUM_THREADS);
+    init_benchmark(NUM_JOBS);
 
     picobench::runner r;
     r.set_compare_results_across_samples(true);

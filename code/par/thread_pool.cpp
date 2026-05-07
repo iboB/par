@@ -211,6 +211,7 @@ struct thread_pool::impl {
             }
 
             while (true) {
+                bool stolen = false;
                 std::unique_lock lock(m_mutex);
                 while (true) {
                     if (!m_pending_tasks.empty()) {
@@ -223,6 +224,7 @@ struct thread_pool::impl {
                         m_busy.test_and_set(std::memory_order_acquire);
                         m_executing_tasks.push_back(*t);
                         lock.unlock();
+                        stolen = true;
                         #if PAR_DEBUG_STATS
                         ++m_debug_stats.num_tasks_stolen;
                         #endif
@@ -342,6 +344,8 @@ struct thread_pool::impl {
 
         std::latch latch(num_worker_jobs);
 
+        uint32_t num_spawned = 0;
+
         bool task_added_to_dynamic_tasks = false;
         if (opts.sched == schedule_static) {
             // static scheduling, no work stealing
@@ -355,6 +359,7 @@ struct thread_pool::impl {
             for (auto& w : m_workers) {
                 if (w->try_add_task({index + 1, func, &latch})) {
                     ++index;
+                    ++num_spawned;
                     if (index == num_worker_jobs) {
                         break;
                     }
@@ -386,6 +391,8 @@ struct thread_pool::impl {
         ++dstats.num_tasks_executed;
         #endif
 
+        uint32_t num_stolen = 0;
+
         if (opts.sched != schedule_static && task_added_to_dynamic_tasks) {
             // try stealing work while possible
             while (true) {
@@ -406,6 +413,7 @@ struct thread_pool::impl {
                 }
 
                 task();
+                ++num_stolen;
                 #if PAR_DEBUG_STATS
                 ++dstats.num_tasks_stolen;
                 ++dstats.num_tasks_executed;
