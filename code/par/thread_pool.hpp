@@ -35,6 +35,10 @@ public:
 
     const std::string& name() const;
 
+    // run a trivial task on all threads to warm up the pool
+    // return the number of threads that were warmed up (num_threads() + 1)
+    uint32_t warmup();
+
     using task_func = te_func_ptr<void(uint32_t)>;
 
     // return the number of threads used to run the task, including the caller thread

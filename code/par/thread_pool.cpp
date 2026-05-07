@@ -444,6 +444,20 @@ uint32_t thread_pool::get_par(run_opts opts) const {
     return m_impl->get_par(opts);
 }
 
+uint32_t thread_pool::warmup() {
+    std::atomic_uint32_t counter{0};
+    auto func = [&](uint32_t) {
+        ++counter;
+    };
+    [[maybe_unused]] auto ran = run_task({.sched = par::schedule_static}, thread_pool::task_func(func));
+
+    // sanity asserts
+    assert(counter == num_threads() + 1);
+    assert(ran == num_threads() + 1);
+
+    return counter;
+}
+
 // global thread pool management
 
 namespace {
