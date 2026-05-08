@@ -1,36 +1,46 @@
 // Copyright (c) Borislav Stanimirov
 // SPDX-License-Identifier: MIT
 //
+#include <par/pfor.hpp>
+#include <thread>
 #include <iostream>
+#include <algorithm>
 #include <functional>
+#include <numeric>
+#include <cassert>
+#include <vector>
+#include <complex>
 
-//inline void init_benchmark(uint32_t num_jobs) {
-//    par::thread_pool::init_global(std::min(std::thread::hardware_concurrency(), num_jobs - 1));
-//
-//    num_jobs = par::thread_pool::global().num_threads() + 1;
-//
-//    std::atomic_uint32_t counter{0};
-//
-//    // warm up par
-//    [[maybe_unused]] auto ret = par::thread_pool::global().warmup();
-//
-//    // warm up OpenMP
-//    #pragma omp parallel for num_threads(num_jobs) schedule(static)
-//    for (int i = 0; i < int(num_jobs); ++i) {
-//        ++counter;
-//    }
-//
-//    // sanity
-//    assert(ret == counter);
-//}
+inline int mandelbrot(int x, int y, int size, int max_iter = 1000) {
+    double cx = (x - size / 2.0) * 2.0 / size;
+    double cy = (y - size / 2.0) * 2.0 / size;
+
+    std::complex<double> c(cx, cy);
+    std::complex<double> z = 0;
+    int n = 0;
+    while (std::abs(z) <= 2.0 && n < max_iter) {
+        z = z * z + c;
+        ++n;
+    }
+    return n;
+}
 
 int main() {
-    //pfor(pool, {.max_par = 4}, 0, 10,
-    //    [](job_info job) {
+    constexpr uint32_t num_jobs = 8;
+    par::thread_pool::init_global(std::min(std::thread::hardware_concurrency(), num_jobs - 1));
+    [[maybe_unused]] auto ret = par::thread_pool::global().warmup();
+    assert(ret == num_jobs);
 
-    //    },
-    //    [](int i) {
-    //        std::cout << "Processing index: " << i << std::endl;
-    //    });
-    std::cout << "Hello, Sandbox!" << std::endl;
+    const auto size = 20;
+    std::vector<int> output(size * size);
+
+    par::pfor({.max_par = 5}, 0, size, [&](int y) {
+        par::pfor({.max_par = 5}, 0, size, [&](int x) {
+            output[y * size + x] = mandelbrot(x, y, size);
+        });
+    });
+
+    std::cout << std::accumulate(output.begin(), output.end(), 0) << std::endl;
+
+    return 0;
 }
