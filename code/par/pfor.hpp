@@ -91,20 +91,20 @@ void simple_pfor(
     }
 
     if (opts.sched == schedule_static) {
-        const auto r = size % num_jobs;
-        const auto q = size / num_jobs;
+        const auto r = U(size % num_jobs);
+        const auto q = U(size / num_jobs);
 
         auto wfunc = [&](uint32_t ji) {
             JobData data = init_job_data(job_info{ji, uint32_t(num_jobs)});
 
             U wbegin, wend;
-            if (ji < r) {
-                wbegin = ji * (q + 1);
-                wend = wbegin + (q + 1);
+            if (ji < uint32_t(r)) {
+                wbegin = U(ji * (q + 1));
+                wend = U(wbegin + (q + 1));
             }
             else {
-                wbegin = ji * q + r;
-                wend = wbegin + q;
+                wbegin = U(ji * q + r);
+                wend = U(wbegin + q);
             }
 
             for (U i = wbegin; i < wend; ++i) {

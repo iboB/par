@@ -11,13 +11,13 @@
 
 TEST_CASE("pfor dynamic") {
     static constexpr uint32_t num_threads = 6;
-    par::thread_pool pool("test", 4);
+    par::thread_pool pool("test", num_threads);
 
-    static constexpr size_t size = 937;
+    static constexpr int size = 937;
 
     auto run_test_func = [&](uint32_t max_par) {
         std::atomic_int count = 0;
-        par::pfor(pool, {.max_par = max_par}, 0, 937, [&](int i) {
+        par::pfor(pool, {.max_par = max_par}, 0, size, [&](int i) {
             count += i;
         });
         CHECK(count == (size * (size - 1)) / 2);
@@ -237,4 +237,26 @@ TEST_CASE("small iteration space") {
         run_test(par::schedule_dynamic, i);
         run_test(par::schedule_static, i);
     }
+}
+
+TEST_CASE("counter types") {
+    static constexpr uint32_t num_threads = 4;
+    par::thread_pool pool("test", num_threads);
+
+    auto simple_test = [&]<typename I>(I from, I to) {
+        std::atomic<I> sum = 0;
+        par::pfor(pool, {}, from, to, [&](I i) {
+            sum += i;
+        });
+        return sum.load();
+    };
+
+    CHECK(simple_test(0, 10) == 45);
+    CHECK(simple_test(0u, 10u) == 45);
+    CHECK(simple_test(int16_t(0), int16_t(10)) == 45);
+    CHECK(simple_test(uint16_t(0), uint16_t(10)) == 45);
+    CHECK(simple_test(int8_t(0), int8_t(10)) == 45);
+    CHECK(simple_test(uint8_t(0), uint8_t(10)) == 45);
+    CHECK(simple_test(int64_t(0), int64_t(10)) == 45);
+    CHECK(simple_test(uint64_t(0), uint64_t(10)) == 45);
 }
