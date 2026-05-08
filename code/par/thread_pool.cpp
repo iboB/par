@@ -56,13 +56,13 @@ struct pending_dynamic_task {
 
     thread_pool::task_func func;
 
-    std::latch& latch;
+    std::latch* latch = nullptr;
 
     pending_dynamic_task(uint32_t i, uint32_t n, const thread_pool::task_func& f, std::latch& l)
         : index(i)
         , size(n)
         , func(f)
-        , latch(l)
+        , latch(&l)
     {}
 
     bool scheduled() const {
@@ -74,7 +74,7 @@ struct pending_dynamic_task {
         worker_task wt;
         wt.index = ++index;
         wt.func = func;
-        wt.latch = &latch;
+        wt.latch = latch;
         return wt;
     }
 };
@@ -111,7 +111,20 @@ struct thread_pool::impl {
             auto& front = m_pending_dynamic_tasks.front();
 
             if (!front.scheduled()) {
-                return front.get_next_worker_task();
+                auto ret = front.get_next_worker_task();
+                if (front.scheduled()) {
+                    // we're about to issue the last instance of the pending task
+                    // now remove and update m_have_dynamic_tasks
+                    // note that this check and the actions we do here seem superficial
+                    // if we don't do that here, the next entry in this function will to it anyway
+                    // BUT! we will completely avoid the entry and lock if do that eagerly here
+                    // this makes workers a tiny bit faster
+                    m_pending_dynamic_tasks.pop_front();
+                    if (m_pending_dynamic_tasks.empty()) {
+                        m_have_dynamic_tasks.clear(std::memory_order_release);
+                    }
+                }
+                return ret;
             }
 
             m_pending_dynamic_tasks.pop_front();
@@ -396,13 +409,39 @@ struct thread_pool::impl {
 
                     // find our task so that the caller only works on its own task
                     auto f = itlib::pfind_if(m_pending_dynamic_tasks, [&](const pending_dynamic_task& t) {
-                        return &t.latch == &latch;
+                        return t.latch == &latch;
                     });
-                    if (!f || f->scheduled()) break; // no more work to steal
+                    if (!f) {
+                        // our task is completely scheduled and removed from the list
+                        // nothing more to do
+                        break;
+                    }
+                    // receive a completely scheduled yet living task here must be impossible
+                    // either is was stolen by another worker and removed in get_pending_dynamic_task,
+                    // or this worker has stolen it and made it invalid in the code below
+                    assert(!f->scheduled());
                     task = f->get_next_worker_task();
 
-                    // note that we don't remove the task from m_pending_dynamic_tasks here
-                    // we leave this job to the workers
+                    if (f->scheduled()) {
+                        // we're about to execute the last instance of the pending task
+                        // BUT! we will avoid removing it from the list here since it's out of order
+                        // and a removal is O(n) instead we will invalidate it by setting the latch to nullptr
+                        // thus worker steals by get_pending_dynamic_task will just pop it (as it's scheduled)
+                        // and our own attempts to steal will fail since the nullptr latch doesn't match our own
+
+                        // still, we CAN remove it safely if it's in the front or back, as deque allows
+                        // O(1) removal in those cases
+                        if (f == &m_pending_dynamic_tasks.front()) {
+                            m_pending_dynamic_tasks.pop_front();
+                        }
+                        else if (f == &m_pending_dynamic_tasks.back()) {
+                            m_pending_dynamic_tasks.pop_back();
+                        }
+                        else {
+                            // invalidate latch and have a worker pop it when it reaches front
+                            f->latch = nullptr;
+                        }
+                    }
                 }
 
                 task();
