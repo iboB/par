@@ -116,8 +116,8 @@ struct thread_pool::impl {
                     // we're about to issue the last instance of the pending task
                     // now remove and update m_have_dynamic_tasks
                     // note that this check and the actions we do here seem superficial
-                    // if we don't do that here, the next entry in this function will to it anyway
-                    // BUT! we will completely avoid the entry and lock if do that eagerly here
+                    // if we don't do that here, the next entry in this function will do it anyway
+                    // BUT! we will completely avoid the entry and lock if we do that eagerly here
                     // this makes workers a tiny bit faster
                     m_pending_dynamic_tasks.pop_front();
                     if (m_pending_dynamic_tasks.empty()) {
@@ -417,7 +417,7 @@ struct thread_pool::impl {
                         break;
                     }
                     // receive a completely scheduled yet living task here must be impossible
-                    // either is was stolen by another worker and removed in get_pending_dynamic_task,
+                    // either it was stolen by another worker and removed in get_pending_dynamic_task,
                     // or this worker has stolen it and made it invalid in the code below
                     assert(!f->scheduled());
                     task = f->get_next_worker_task();
