@@ -65,7 +65,7 @@ struct pending_dynamic_task {
         , latch(l)
     {}
 
-    bool done() const {
+    bool scheduled() const {
         return index == size;
     }
 
@@ -110,7 +110,7 @@ struct thread_pool::impl {
 
             auto& front = m_pending_dynamic_tasks.front();
 
-            if (!front.done()) {
+            if (!front.scheduled()) {
                 return front.get_next_worker_task();
             }
 
@@ -398,7 +398,7 @@ struct thread_pool::impl {
                     auto f = itlib::pfind_if(m_pending_dynamic_tasks, [&](const pending_dynamic_task& t) {
                         return &t.latch == &latch;
                     });
-                    if (!f || f->done()) break; // no more work to steal
+                    if (!f || f->scheduled()) break; // no more work to steal
                     task = f->get_next_worker_task();
 
                     // note that we don't remove the task from m_pending_dynamic_tasks here
