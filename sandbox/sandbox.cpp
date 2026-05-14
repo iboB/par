@@ -3,13 +3,19 @@
 //
 #include <par/pfor.hpp>
 #include <iostream>
+#include <utility>
+#include <format>
 
 int main() {
-    std::atomic<int64_t> sum = 0;
-    par::pfor({.sched = par::schedule_static, .max_par = 4}, int16_t(0), int16_t(0x7FFF), [&](uint16_t i) {
-        sum += i;
-    });
+    const unsigned p = 4;
+    const unsigned s = 10;
 
-    std::cout << sum.load() << std::endl;
+    par::balanced_chunks chunk(s, p);
+
+    for (int i=0; i<p; ++i) {
+        auto [lo, hi] = chunk(0, i);
+        std::cout << std::format("{}-{}\n", lo, hi);
+    }
+
     return 0;
 }

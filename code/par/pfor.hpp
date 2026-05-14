@@ -4,6 +4,7 @@
 #pragma once
 #include "thread_pool.hpp"
 #include "job_info.hpp"
+#include "chunk_util.hpp"
 #include "bits/imath.hpp"
 #include <splat/inline.h>
 #include <atomic>
@@ -91,24 +92,14 @@ void simple_pfor(
     }
 
     if (opts.sched == schedule_static) {
-        const auto r = U(size % num_jobs);
-        const auto q = U(size / num_jobs);
+        balanced_chunks chunk(size, num_jobs);
 
         auto wfunc = [&](uint32_t ji) {
             JobData data = init_job_data(job_info{ji, uint32_t(num_jobs)});
 
-            U wbegin, wend;
-            if (ji < uint32_t(r)) {
-                wbegin = U(ji * (q + 1));
-                wend = U(wbegin + (q + 1));
-            }
-            else {
-                wbegin = U(ji * q + r);
-                wend = U(wbegin + q);
-            }
-
-            for (U i = wbegin; i < wend; ++i) {
-                invoke_pfor_func(I(U(begin) + i), data, func);
+            const auto [chunk_begin, chunk_end] = chunk(begin, U(ji));
+            for (I i = chunk_begin; i < chunk_end; ++i) {
+                invoke_pfor_func(i, data, func);
             }
         };
 
