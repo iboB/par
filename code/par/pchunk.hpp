@@ -4,6 +4,7 @@
 #pragma once
 #include "thread_pool.hpp"
 #include "job_info.hpp"
+#include "chunk_util.hpp"
 #include <splat/inline.h>
 #include <type_traits>
 
@@ -23,8 +24,9 @@ FORCE_INLINE void invoke_pchunk_func(I begin, I end, [[maybe_unused]] const job_
 
 template <typename I, typename Func>
 uint32_t pchunk(thread_pool& pool, run_opts opts, const I size, Func&& func) {
-    if (size == 0) return 0; // nothing to do
-    const auto num_chunks = pool.adjust_par(size, opts);
+    if (size <= 0) return 0; // nothing to do
+    auto usize = std::make_unsigned_t<I>(size);
+    const auto num_chunks = pool.adjust_par(usize, opts);
 
     if (num_chunks == 1) {
         // only one chunk, just call the function and skip the overhead below
@@ -32,12 +34,11 @@ uint32_t pchunk(thread_pool& pool, run_opts opts, const I size, Func&& func) {
         return 1;
     }
 
-    const auto chunk_size = (size + num_chunks - 1) / num_chunks;
+    balanced_chunks chunk(usize, num_chunks);
     auto wfunc = [&](uint32_t ci) {
-        const auto begin = I(ci * chunk_size);
-        const auto end = I(ci + 1) < num_chunks ? begin + chunk_size : size;
         job_info ji{ci, uint32_t(num_chunks)};
-        impl::invoke_pchunk_func(begin, end, ji, func);
+        const auto [cbegin, cend] = chunk(I(0), ci);
+        impl::invoke_pchunk_func(cbegin, cend, ji, func);
     };
     return pool.run_task(opts, thread_pool::task_func(wfunc));
 }
