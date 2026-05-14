@@ -3,6 +3,7 @@
 //
 #pragma once
 #include "bits/imath.hpp"
+#include <splat/inline.h>
 #include <type_traits>
 #include <utility>
 
@@ -18,7 +19,7 @@ struct balanced_chunks {
     {}
 
     template <typename I>
-    std::pair<I, I> operator()(I offset, U chunk_index) const {
+    FORCE_INLINE std::pair<I, I> operator()(I offset, U chunk_index) const {
         U cbegin, cend;
         if (chunk_index < r) {
             cbegin = U(offset) + chunk_index * (q + 1);
@@ -43,7 +44,7 @@ struct fixed_chunks {
         , num_chunks(divide_round_up(size, chunk_size))
     {}
     template <typename I>
-    std::pair<I, I> operator()(I offset, U chunk_index) const {
+    FORCE_INLINE std::pair<I, I> operator()(I offset, U chunk_index) const {
         U cbegin = U(offset) + chunk_index * chunk_size;
         U cend = chunk_index + 1 < num_chunks ? cbegin + chunk_size : U(offset) + size;
         return {I(cbegin), I(cend)};
