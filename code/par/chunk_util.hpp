@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 //
 #pragma once
+#include "bits/imath.hpp"
 #include <type_traits>
 #include <utility>
 
@@ -31,6 +32,25 @@ struct balanced_chunks {
     }
 
     U r, q;
+};
+
+template <typename U>
+struct fixed_chunks {
+    static_assert(std::is_unsigned_v<U>, "fixed_chunks requires an unsigned integer type");
+    fixed_chunks(U size, U chunk_size)
+        : size(size)
+        , chunk_size(chunk_size)
+        , num_chunks(divide_round_up(size, chunk_size))
+    {}
+    template <typename I>
+    std::pair<I, I> operator()(I offset, U chunk_index) const {
+        U cbegin = U(offset) + chunk_index * chunk_size;
+        U cend = chunk_index + 1 < num_chunks ? cbegin + chunk_size : U(offset) + size;
+        return {I(cbegin), I(cend)};
+    }
+    U size;
+    U chunk_size;
+    U num_chunks;
 };
 
 } // namespace par

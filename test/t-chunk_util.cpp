@@ -5,12 +5,12 @@
 #include <doctest/doctest.h>
 #include <vector>
 
-TEST_CASE("balanced_chunks") {
-    using vec = std::vector<std::pair<int, int>>;
+using range_vec = std::vector<std::pair<int, int>>;
 
-    auto test = [](int begin, unsigned size, unsigned num_chunks, vec expected) {
+TEST_CASE("balanced_chunks") {
+    auto test = [](int begin, unsigned size, unsigned num_chunks, range_vec expected) {
         par::balanced_chunks bc(size, num_chunks);
-        vec chunks;
+        range_vec chunks;
         for (unsigned i = 0; i < num_chunks; ++i) {
             chunks.push_back(bc(begin, i));
         }
@@ -31,4 +31,19 @@ TEST_CASE("balanced_chunks") {
     test(-20, 10, 2, {{-20, -15}, {-15, -10}});
     test(-20, 10, 3, {{-20, -16}, {-16, -13}, {-13, -10}});
     test(-20, 10, 4, {{-20, -17}, {-17, -14}, {-14, -12}, {-12, -10}});
+}
+
+TEST_CASE("fixed_chunks") {
+    auto test = [](int begin, unsigned size, unsigned chunk_size, range_vec expected) {
+        par::fixed_chunks fc(size, chunk_size);
+        range_vec chunks;
+        for (unsigned i = 0; i < fc.num_chunks; ++i) {
+            chunks.push_back(fc(begin, i));
+        }
+        CHECK(chunks == expected);
+    };
+
+    test(0, 10, 3, {{0, 3}, {3, 6}, {6, 9}, {9, 10}});
+    test(100, 10, 4, {{100, 104}, {104, 108}, {108, 110}});
+    test(-20, 11, 5, {{-20, -15}, {-15, -10}, {-10, -9}});
 }
