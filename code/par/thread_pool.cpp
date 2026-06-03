@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 //
 #include "thread_pool.hpp"
+#include "global_thread_pool.hpp"
 #include "bits/anchor.hpp"
 #include "bits/cpu.hpp"
 #include "bits/thread_name.hpp"
@@ -503,28 +504,20 @@ namespace {
 
 std::atomic_flag global_initialized = ATOMIC_FLAG_INIT;
 
-std::unique_ptr<thread_pool> global_thread_pool;
+std::unique_ptr<thread_pool> the_global_thread_pool;
 
 thread_pool& do_init_global(uint32_t nthreads) {
-    global_thread_pool = std::make_unique<thread_pool>("gpar", nthreads);
-    return *global_thread_pool;
+    the_global_thread_pool = std::make_unique<thread_pool>("gpar", nthreads);
+    return *the_global_thread_pool;
 }
 
 } // namespace
 
 thread_pool& thread_pool::global() {
     if (!global_initialized.test_and_set(std::memory_order_acquire)) {
-        constexpr uint32_t other_threads = 2;
-        const auto hwc = std::thread::hardware_concurrency();
-        if (hwc <= other_threads) {
-            // no workers, only caller thread
-            return do_init_global(0);
-        }
-        else {
-            return do_init_global(hwc - other_threads);
-        }
+        return do_init_global(suggest_global_thread_pool_size());
     }
-    return *global_thread_pool;
+    return *the_global_thread_pool;
 }
 
 thread_pool& thread_pool::init_global(uint32_t nthreads) {
@@ -540,6 +533,32 @@ bool thread_pool::have_debug_stats() const {
     #else
     return false;
     #endif
+}
+
+uint32_t suggest_global_thread_pool_size() {
+    constexpr uint32_t other_threads = 2;
+    const auto hwc = std::thread::hardware_concurrency();
+    if (hwc <= other_threads) {
+        // no workers, only caller thread
+        return 0;
+    }
+    else {
+        return hwc - other_threads;
+    }
+}
+
+thread_pool& global_thread_pool() {
+    return thread_pool::global();
+}
+
+thread_pool& init_global_thread_pool(uint32_t nthreads) {
+    return thread_pool::init_global(nthreads);
+}
+
+thread_pool& init_and_warmup_global_thread_pool(uint32_t nthreads) {
+    auto& pool = init_global_thread_pool(nthreads);
+    pool.warmup();
+    return pool;
 }
 
 } // namespace par

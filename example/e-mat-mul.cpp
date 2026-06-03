@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 //
 #include <par/pfor.hpp>
+#include <par/global_thread_pool.hpp>
 #include <vector>
 #include <iostream>
 #include <span>
@@ -88,6 +89,8 @@ square_matrix generate_random_matrix(size_t size, uint32_t seed) {
 }
 
 int main() {
+    par::init_and_warmup_global_thread_pool();
+
     static constexpr std::size_t matrix_size = 500;
     auto a = generate_random_matrix(matrix_size, 42);
     auto b = generate_random_matrix(matrix_size, 1337);
@@ -97,7 +100,7 @@ int main() {
     auto start = std::chrono::high_resolution_clock::now();
     auto s = mat_mul_seq(a, b);
     auto seq_duration = std::chrono::high_resolution_clock::now() - start;
-    std::cout << "Sequential: "
+    std::cout << "sequential: "
         << std::chrono::duration_cast<std::chrono::milliseconds>(seq_duration).count()
         << " ms\n";
 
