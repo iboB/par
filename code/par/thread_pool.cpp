@@ -502,29 +502,33 @@ uint32_t thread_pool::warmup() {
 
 namespace {
 
-std::atomic_flag global_initialized = ATOMIC_FLAG_INIT;
+std::atomic_flag global_init_begun = ATOMIC_FLAG_INIT;
 
-std::unique_ptr<thread_pool> the_global_thread_pool;
-
-thread_pool& do_init_global(uint32_t nthreads) {
-    the_global_thread_pool = std::make_unique<thread_pool>("gpar", nthreads);
-    return *the_global_thread_pool;
-}
+std::optional<thread_pool> the_global_thread_pool_storage;
+std::atomic<thread_pool*> the_global_thread_pool;
 
 } // namespace
 
 thread_pool& thread_pool::global() {
-    if (!global_initialized.test_and_set(std::memory_order_acquire)) {
-        return do_init_global(suggest_global_thread_pool_size());
+    if (auto g = the_global_thread_pool.load(std::memory_order_acquire)) {
+        // already initialized, just return it
+        return *g;
     }
-    return *the_global_thread_pool;
+    return init_global(suggest_global_thread_pool_size());
 }
 
 thread_pool& thread_pool::init_global(uint32_t nthreads) {
-    if (global_initialized.test_and_set(std::memory_order_acquire)) {
-        throw std::runtime_error("global par::thread_pool already initialized");
+    if (global_init_begun.test_and_set(std::memory_order_acq_rel)) {
+        if (the_global_thread_pool.load(std::memory_order_acquire)) {
+            throw std::runtime_error("global thread pool already initialized");
+        }
+        throw std::runtime_error("concurrent global thread pool initialization is not supported, initialize manually");
     }
-    return do_init_global(nthreads);
+
+    auto& g = the_global_thread_pool_storage.emplace("gpar", nthreads);
+    the_global_thread_pool.store(&g, std::memory_order_release);
+
+    return g;
 }
 
 bool thread_pool::have_debug_stats() const {
