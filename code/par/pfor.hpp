@@ -6,6 +6,7 @@
 #include "job_info.hpp"
 #include "chunk_util.hpp"
 #include "bits/imath.hpp"
+#include "bits/wider_int.hpp"
 #include <splat/inline.h>
 #include <atomic>
 #include <type_traits>
@@ -77,6 +78,7 @@ void simple_pfor(
     LoopFunc&& func
 ) {
     if (begin >= end) return; // nothing to do
+
     using U = std::make_unsigned_t<I>;
     const U size = U(end) - U(begin);
 
@@ -106,12 +108,25 @@ void simple_pfor(
         pool.run_task(opts, thread_pool::task_func(wfunc));
     }
     else {
-        std::atomic<U> slot = 0;
+        // use a wider int for the slot here
+        // thus if the range covers all the I space, we won't overflow when bumping it
+        // now, this means that we're using a 64-bit counter for every 32-bit range
+        // on 64-bit architectures it doesn't really matter as this is a single locked instruction where the lock
+        // dominates the perf (add 32 or 64 is noise compared to the lock/sync)
+        // on 32-bit architectures 64-bit atomic ops are significantly more expensive
+        // if we ever target 32-bits, we should add a check whether the range is small enough to use a narrow counter
+        //
+        // if (W(size) + W(num_jobs) <= std::numeric_limits<U>::max()) U-slot
+        // else W-slot
+        //
+        // for now we'll just always use a wider int, as this is the simplest solution
+        using W = wider_int_t<U>;
+        std::atomic<W> slot = 0;
 
         auto wfunc = [&](uint32_t ji) {
             JobData data = init_job_data(job_info{ji, uint32_t(num_jobs)});
             while (true) {
-                const U i = slot.fetch_add(1, std::memory_order_relaxed);
+                const W i = slot.fetch_add(1, std::memory_order_relaxed);
                 if (i >= size) return; // all done
                 invoke_pfor_func(I(U(begin) + i), data, func);
             }

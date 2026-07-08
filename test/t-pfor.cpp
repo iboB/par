@@ -3,11 +3,13 @@
 //
 #include <par/pfor.hpp>
 #include <doctest/doctest.h>
+#include <itlib/data_mutex.hpp>
 #include <vector>
 #include <thread>
 #include <set>
 #include <algorithm>
 #include <mutex>
+#include <limits>
 
 TEST_CASE("pfor dynamic") {
     static constexpr uint32_t num_threads = 6;
@@ -148,16 +150,15 @@ TEST_CASE("pfor ranges") {
 
     auto run_test = [&](int begin, int end, int step, vec expected) {
         for (int chunk_size = 1; chunk_size <= 10; ++chunk_size) {
-            std::mutex mtx;
-            vec result;
+            itlib::data_mutex<vec, std::mutex> result;
             par::pfor(pool, {}, par::range(begin, end).with_step(step).with_iterations_per_job(chunk_size),
                 [&](int i) {
-                    std::lock_guard lock(mtx);
-                    result.push_back(i);
+                    result.unique_lock()->push_back(i);
                 }
             );
-            std::sort(result.begin(), result.end());
-            CHECK(result == expected);
+            auto v = result.unique_lock();
+            std::sort(v->begin(), v->end());
+            CHECK(*v == expected);
         }
     };
 
@@ -259,4 +260,39 @@ TEST_CASE("counter types") {
     CHECK(simple_test(uint8_t(0), uint8_t(10)) == 45);
     CHECK(simple_test(int64_t(0), int64_t(10)) == 45);
     CHECK(simple_test(uint64_t(0), uint64_t(10)) == 45);
+}
+
+TEST_CASE("full iteration space") {
+    static constexpr uint32_t num_threads = 4;
+    par::thread_pool pool("test", num_threads);
+
+    using vec = std::vector<int>;
+
+    auto run_test = [&]<typename I>(par::schedule sched, I) {
+        itlib::data_mutex<vec, std::mutex> result;
+
+        constexpr auto from = std::numeric_limits<I>::min();
+        constexpr auto to = std::numeric_limits<I>::max();
+
+        par::pfor(pool, {.sched = sched}, from, to, [&](I i) {
+            result.unique_lock()->push_back(int(i));
+        });
+
+        vec expected;
+        for (I i = from; i < to; ++i) {
+            expected.push_back(int(i));
+        }
+        auto v = result.unique_lock();
+        std::sort(v->begin(), v->end());
+        CHECK(*v == expected);
+    };
+
+    run_test(par::schedule_static, int8_t{});
+    run_test(par::schedule_dynamic, int8_t{});
+    run_test(par::schedule_static, uint8_t{});
+    run_test(par::schedule_dynamic, uint8_t{});
+    run_test(par::schedule_static, int16_t{});
+    run_test(par::schedule_dynamic, int16_t{});
+    run_test(par::schedule_static, uint16_t{});
+    run_test(par::schedule_dynamic, uint16_t{});
 }
