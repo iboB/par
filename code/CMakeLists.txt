@@ -6,8 +6,8 @@ include(icm_add_lib)
 icm_add_lib(par PAR)
 add_library(par::par ALIAS par)
 
-CPMAddPackage(gh:iboB/splat@1.3.4)
-CPMAddPackage(gh:iboB/itlib@1.11.9)
+CPMAddPackage(gh:iboB/splat@1.3.5)
+CPMAddPackage(gh:iboB/itlib@1.12.3)
 target_link_libraries(par PUBLIC
     splat::splat
     itlib::itlib

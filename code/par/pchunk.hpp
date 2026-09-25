@@ -40,7 +40,7 @@ uint32_t pchunk(thread_pool& pool, run_opts opts, const I size, Func&& func) {
         const auto [cbegin, cend] = chunk(I(0), ci);
         impl::invoke_pchunk_func(cbegin, cend, ji, func);
     };
-    return pool.run_task(opts, thread_pool::task_func(wfunc));
+    return pool.run_task(opts, thread_pool::task_func(&wfunc));
 }
 
 template <typename I, typename Func>

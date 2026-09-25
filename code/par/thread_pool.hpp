@@ -4,7 +4,7 @@
 #pragma once
 #include "api.h"
 #include "run_opts.hpp"
-#include "bits/te_func_ptr.hpp"
+#include <itlib/func_ptr.hpp>
 #include <memory>
 #include <cstdint>
 #include <string>
@@ -39,7 +39,7 @@ public:
     // return the number of threads that were warmed up (num_threads() + 1)
     uint32_t warmup();
 
-    using task_func = te_func_ptr<void(uint32_t)>;
+    using task_func = itlib::func_ptr<void(uint32_t)>;
 
     // return the number of threads used to run the task, including the caller thread
     uint32_t run_task(run_opts opts, task_func task);

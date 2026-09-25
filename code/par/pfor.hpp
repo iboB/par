@@ -105,7 +105,7 @@ void simple_pfor(
             }
         };
 
-        pool.run_task(opts, thread_pool::task_func(wfunc));
+        pool.run_task(opts, thread_pool::task_func(&wfunc));
     }
     else {
         // use a wider int for the slot here
@@ -132,7 +132,7 @@ void simple_pfor(
             }
         };
 
-        pool.run_task(opts, thread_pool::task_func(wfunc));
+        pool.run_task(opts, thread_pool::task_func(&wfunc));
     }
 }
 
